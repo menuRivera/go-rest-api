@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type todo struct {
@@ -22,10 +22,10 @@ var todos = []todo{
 func getTodos(ctx *gin.Context) {
 	fmt.Println("GET todos...")
 	fmt.Println(todos)
-	ctx.IndentedJSON(http.StatusOK, todos)	
+	ctx.IndentedJSON(http.StatusOK, todos)
 }
 
-func getTodoById(id string) (*todo, error) {
+func findTodo(id string) (*todo, error) {
 	for _, t := range todos {
 		if t.ID == id {
 			return &t, nil
@@ -36,11 +36,11 @@ func getTodoById(id string) (*todo, error) {
 }
 
 func getTodo(ctx *gin.Context) {
-	id := ctx.Param("id")	
+	id := ctx.Param("id")
 
 	fmt.Println(fmt.Sprintf("GET /todos/%s", id))
 
-	todo, err := getTodoById(id)
+	todo, err := findTodo(id)
 
 	if err != nil {
 		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "Todo not found"})
@@ -51,7 +51,7 @@ func getTodo(ctx *gin.Context) {
 
 func addTodo(ctx *gin.Context) {
 	fmt.Println("POST todo...")
-	var newTodo todo 
+	var newTodo todo
 
 	if err := ctx.BindJSON(&newTodo); err != nil {
 		fmt.Println(err)
@@ -62,14 +62,27 @@ func addTodo(ctx *gin.Context) {
 
 	ctx.IndentedJSON(http.StatusCreated, todos)
 }
+func toggleTodoStatus(ctx *gin.Context) {
+	id := ctx.Param("id")
+	todo, err := findTodo(id)
+
+	if err != nil {
+		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "Todo not found"})
+	}
+
+	todo.Completed = !todo.Completed
+
+	ctx.IndentedJSON(http.StatusOK, todo)
+}
 
 func main() {
-	// var router = gin.Default() <- equivalent	
-	router := gin.Default() 
+	// var router = gin.Default() <- equivalent
+	router := gin.Default()
 
 	// routes
 	router.GET("/todos", getTodos)
 	router.GET("/todos/:id", getTodo)
+	router.PATCH("/todos/:id", toggleTodoStatus)
 	router.POST("/todos", addTodo)
 
 	// server init
